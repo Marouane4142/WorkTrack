@@ -15,8 +15,8 @@ android {
         applicationId = "com.companyname.WorkTrack"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "2.1.2"
+        versionCode = 6
+        versionName = "2.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
@@ -53,8 +53,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     testOptions { unitTests.isReturnDefaultValues = true }
+    sourceSets.getByName("test").resources.directories.add("src/main/assets")
+    sourceSets.getByName("androidTest").assets.directories.add("src/test/resources")
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }
 

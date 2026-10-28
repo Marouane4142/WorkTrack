@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import fr.worktrack.domain.*
 import fr.worktrack.export.RasterImages
+import fr.worktrack.BuildConfig
 import java.time.LocalDate
 
 @Composable
@@ -51,7 +52,7 @@ fun SettingsScreen(state: WorkTrackState, vm: WorkTrackViewModel, onRestore: () 
         }
         item {
             SettingsCard("Vos relevés", Icons.Outlined.Description) {
-                Text("Ajoutez le logo de votre entreprise et votre signature aux PDF.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Ajoutez le logo de votre entreprise et votre signature aux feuilles Excel et PDF.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 ProfileImage("Logo de l'entreprise", profile.companyLogo, state.busy, onPick = { onPickImage(false) },
                     onClear = { vm.settings { it.copy(profile = it.profile.copy(companyLogo = "")) } })
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -100,7 +101,7 @@ fun SettingsScreen(state: WorkTrackState, vm: WorkTrackViewModel, onRestore: () 
                 TextButton({ eraseStep = 1 }, Modifier.fillMaxWidth(), enabled = !state.busy && state.entries.isNotEmpty()) { Text("Effacer l'historique", color = MaterialTheme.colorScheme.error) }
             }
         }
-        item { Text("WorkTrack 2.1.1 · Votre temps de travail, partout.\nLes règles sont enregistrées avec chaque activité. Une modification des réglages s'applique aux nouvelles saisies.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        item { Text("WorkTrack ${BuildConfig.VERSION_NAME} · Votre temps de travail, partout.\nLes règles sont enregistrées avec chaque activité. Une modification des réglages s'applique aux nouvelles saisies.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
     if (profileEditor) ProfileDialog(profile, onDismiss = { profileEditor = false }) { updated -> profileEditor = false; vm.settings { it.copy(profile = updated) } }
     if (rulesEditor) RulesDialog(rules, onDismiss = { rulesEditor = false }) { updated -> rulesEditor = false; vm.settings { it.copy(rules = updated) } }

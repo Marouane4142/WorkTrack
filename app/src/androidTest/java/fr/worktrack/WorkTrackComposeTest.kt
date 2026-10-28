@@ -68,6 +68,17 @@ class WorkTrackComposeTest {
         compose.onNodeWithText("Accueil").performClick()
         compose.onNodeWithText("Votre temps, au clair.").assertIsDisplayed()
     }
+    @Test fun exportsDefaultToTheFiveWeekdayExcelTemplateAndRetainPdfAndCsv() {
+        launch()
+        compose.onNodeWithText("Exports").performClick()
+        compose.onNodeWithText("Lundi → vendredi · 5 onglets dans le même fichier Excel").assertExists()
+        compose.onNodeWithText("Feuille de pointage Excel").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ce mois").assertDoesNotExist()
+        compose.onNodeWithText("Relevé PDF").performScrollTo().performClick()
+        compose.onNodeWithText("Ce mois").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("CSV des activités").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("CSV journalier").performScrollTo().assertIsDisplayed()
+    }
     @Test fun outboundTravelPreviewAndSavingDeductFortyFiveMinutes() {
         val vm = launch()
         compose.onNodeWithContentDescription("Nouvelle activité").performClick()

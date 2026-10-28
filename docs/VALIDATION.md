@@ -1,11 +1,11 @@
-# Validation de WorkTrack 2.1.2
+# Validation de WorkTrack 2.2.0
 
 Vérification locale sous Windows avec JDK 21 et un émulateur Pixel 7 sous Android 16 (API 36).
 
 | Vérification | Résultat |
 |---|---|
-| Tests JUnit du moteur, des lieux, sauvegardes et exports | 36 réussis, 0 échec |
-| Tests Android : Compose, Room, repository, fichiers et PDF | 14 réussis, 0 échec |
+| Tests JUnit du moteur, des lieux, sauvegardes et exports | 45 réussis, 0 échec |
+| Tests Android : Compose, Room, repository, fichiers, PDF et Excel | 16 réussis, 0 échec |
 | Android Lint debug | 0 erreur ; avertissements de versions et suggestions Android/Kotlin |
 | Build debug | réussi |
 | Build release avec R8 et réduction des ressources | réussi |
@@ -28,5 +28,15 @@ Les tests Room vérifient la migration SQLite historique et la correction des an
 Les tests de documents importent une image par URI, vérifient sa présence dans une sauvegarde, rendent chaque page d'un PDF long et contrôlent le logo et la signature. Ils vérifient aussi le nom exposé par FileProvider. Les exports PDF sont en A4 paysage, sans marque de l'application, avec une mention des franchises déjà déduites. Les CSV utilisent un BOM UTF-8, des décimales françaises et un séparateur point-virgule.
 
 Les avertissements Lint ne sont pas masqués par une baseline. Les versions de la stack restent fixées ; les essais sur émulateur ne remplacent pas une validation sur chaque modèle de téléphone.
+
+## Modèle Excel hebdomadaire
+
+L'export du modèle original est testé sur la JVM et sur Android. Les cinq onglets et les parties non modifiées du classeur sont conservés, notamment les images et leurs relations. Les cellules de date et d'heure sont numériques, les numéros d'affaire restent des textes avec zéros initiaux, et les données saisies ne deviennent pas des formules.
+
+Les tests couvrent les totaux de la semaine, les franchises personnalisées enregistrées, les passages de minuit et les limites de semaine, les pauses séparées, les jours vides, les débordements de capacité, le logo et son rapport largeur/hauteur, ainsi que la signature sur chaque feuille. Le test Android produit réellement le classeur à partir de l'asset embarqué et contrôle ses 30,75 h effectives, 8,50 h non effectives et 5 repas.
+
+Les cinq feuilles remplies ont été rendues et contrôlées visuellement. Une lecture indépendante du fichier généré par Android vérifie les dates, les formules et leurs résultats enregistrés, ainsi que la conservation du numéro `00042`. Le contrôle par l'interface Excel Windows n'a pas pu être mené à terme : sa boîte de dialogue Ouvrir n'est pas ciblable correctement par l'outil d'automatisation. Aucun résultat de validation native dans Excel n'est revendiqué.
+
+Le build release optimisé a également été installé et testé de bout en bout sur l'émulateur : saisie d'une intervention fictive d'une heure, sélection de la semaine, génération du XLSX et enregistrement via le sélecteur de documents Android. Le fichier enregistré a été relu indépendamment : cinq onglets, activité présente le mercredi, une heure effective et les quatre autres jours à zéro. La signature de l'APK correspond à la clé historique et l'application n'est pas marquée DEBUGGABLE. Les données de démonstration restent limitées à l'émulateur et ne sont pas intégrées à l'APK.
 
 Rapports générés, exclus de Git : `app/build/reports/tests/testDebugUnitTest/`, `app/build/reports/androidTests/connected/debug/`, `app/build/reports/lint-results-debug.html`.

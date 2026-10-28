@@ -184,11 +184,13 @@ class WorkTrackViewModel @Inject constructor(private val repository: WorkReposit
     fun erase() = action { repository.erase(); eventChannel.send(UiEvent.Message("L'historique a été effacé.")) }
 
     fun export(kind: String, period: ReportPeriod, share: Boolean = false) = action {
-        require(period.entries(state.value.entries).isNotEmpty()) { "Ajoutez une activité ou choisissez une période contenant des données." }
         val source = state.value.entries
         val profile = state.value.settings.profile
+        val actualPeriod = if (kind == "XLSX") PointageWeek.containing(period.from).period else period
+        require(actualPeriod.entries(source).isNotEmpty()) { "Ajoutez une activité ou choisissez une période contenant des données." }
         val name = ReportNames.base(profile, period.from, state.value.settings.preferences.weekStartsOnMonday)
         val document = when (kind) {
+            "XLSX" -> documents.pointage(source, PointageWeek.containing(period.from), profile)
             "PDF" -> documents.prepare("$name.pdf", "application/pdf") { PdfExporter.write(it, source, period, profile) }
             "Recapitulatif" -> documents.prepare("$name.csv", "text/csv") { it.write(CsvExporter.summary(source, period)) }
             else -> documents.prepare("$name.csv", "text/csv") { it.write(CsvExporter.detailed(source, period)) }

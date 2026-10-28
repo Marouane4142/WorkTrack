@@ -30,6 +30,10 @@ class DocumentService @Inject constructor(@ApplicationContext private val contex
         context.contentResolver.openOutputStream(uri, "wt")?.use { output -> File(document.path).inputStream().use { it.copyTo(output) } }
             ?: error("Impossible d'ouvrir le fichier choisi.")
     }
+    suspend fun pointage(source: List<fr.worktrack.domain.WorkEntry>, week: PointageWeek, profile: fr.worktrack.domain.Profile): PendingDocument =
+        prepare("${ReportNames.base(profile, week.monday, monday = true)}.xlsx", XlsxExporter.MIME) { output ->
+            context.assets.open(XlsxExporter.TEMPLATE).use { template -> XlsxExporter.write(output, template, source, week, profile) }
+        }
     fun share(document: PendingDocument) {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", File(document.path))
         val intent = Intent(Intent.ACTION_SEND).setType(document.mime).putExtra(Intent.EXTRA_STREAM, uri)
