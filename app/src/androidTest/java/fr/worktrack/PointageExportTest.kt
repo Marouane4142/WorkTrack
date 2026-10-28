@@ -66,5 +66,41 @@ class PointageExportTest {
         assertEquals(30.75, effective, 0.0); assertEquals(8.5, nonEffective, 0.0)
         // Test output only; never preloaded as user history or bundled in the release APK.
         File(context.getExternalFilesDir(null), "pointage-exemple.xlsx").writeBytes(File(document.path).readBytes())
+        val pdf = DocumentService(context).pointage(source, PointageWeek(LocalDate.of(2026, 10, 5)), profile, PointageFormat.PDF)
+        assertTrue(pdf.name.endsWith(".pdf")); assertEquals("application/pdf", pdf.mime)
+        android.os.ParcelFileDescriptor.open(File(pdf.path), android.os.ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+            android.graphics.pdf.PdfRenderer(descriptor).use { renderer ->
+                assertEquals(5, renderer.pageCount)
+                repeat(5) { index -> renderer.openPage(index).use { page -> assertEquals(595, page.width); assertEquals(842, page.height) } }
+            }
+        }
+        File(context.getExternalFilesDir(null), "pointage-exemple.pdf").writeBytes(File(pdf.path).readBytes())
+    }
+    @Test fun openingTheSavedFileUsesItsActualUriMimeAndTemporaryReadPermission() = runBlocking {
+        val service = DocumentService(context)
+        val prepared = service.prepare("Pointage.xlsx", XlsxExporter.MIME) { out -> context.assets.open(XlsxExporter.TEMPLATE).use { it.copyTo(out) } }
+        val folder = File(context.cacheDir, "reports/open-test-${java.util.UUID.randomUUID()}").apply { mkdirs() }
+        val target = File(folder, "Fichier enregistre.xlsx")
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", target)
+        try {
+            val saved = service.save(prepared, uri)
+            assertEquals(uri.toString(), saved.savedUri)
+            val intent = service.openIntent(saved)
+            assertEquals(android.content.Intent.ACTION_VIEW, intent.action)
+            assertEquals(uri, intent.data); assertEquals(XlsxExporter.MIME, intent.type)
+            assertEquals(uri, intent.clipData!!.getItemAt(0).uri)
+            assertTrue(intent.flags and android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
+            assertTrue(intent.flags and android.content.Intent.FLAG_ACTIVITY_NEW_TASK != 0)
+            assertArrayEquals(File(prepared.path).readBytes(), context.contentResolver.openInputStream(intent.data!!)!!.use { it.readBytes() })
+        } finally { File(prepared.path).delete(); target.delete(); folder.delete() }
+    }
+    @Test fun missingViewerProducesAnUnderstandableMessageInsteadOfAnActivityCrash() {
+        val service = DocumentService(object : android.content.ContextWrapper(context) {
+            override fun startActivity(intent: android.content.Intent) { throw android.content.ActivityNotFoundException() }
+        })
+        val exception = assertThrows(IllegalStateException::class.java) {
+            service.open(PendingDocument("", "Pointage.pdf", "application/pdf", "content://example/document/pointage"))
+        }
+        assertTrue(exception.message!!.contains("lecteur PDF"))
     }
 }

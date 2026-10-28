@@ -78,24 +78,24 @@ class DatabaseAndDocumentsTest {
             assertEquals(300, repository.entries.first().single().appliedRules.mealThresholdMinutes)
         } finally { database.close(); scope.cancel(); context.deleteDatabase(name); preferenceFile.delete() }
     }
-    @Test fun pdfPaginatesLongActivityListsAndHasA4Pages() {
-        val entries = (0..70).map { index ->
+    @Test fun weeklyPdfKeepsFiveA4PagesEvenWhenFourDaysAreEmpty() {
+        val entries = (0..0).map { index ->
             val date = LocalDate.of(2026, 10, 5).plusDays(index.toLong())
             WorkCalculator.calculate(WorkEntry(start = "${date}T08:00", end = "${date}T12:00", location = "Un site client avec un nom long ".repeat(4),
                 caseNumber = "00-$index", notes = "Notes d'intervention ".repeat(15)), WorkRules())
         }
         val file = File(context.cacheDir, "test-pdf-${UUID.randomUUID()}.pdf")
         try {
-            file.outputStream().use { PdfExporter.write(it, entries, ReportPeriod(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 12, 20)), Profile("Test", "Technicien", "Entreprise")) }
+            writePointagePdf(file, entries, Profile("Test", "Technicien", "Entreprise"))
             android.os.ParcelFileDescriptor.open(file, android.os.ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
                 android.graphics.pdf.PdfRenderer(descriptor).use { pdf ->
-                    assertTrue(pdf.pageCount >= 3)
-                    pdf.openPage(0).use { page -> assertEquals(842, page.width); assertEquals(595, page.height) }
+                    assertEquals(5, pdf.pageCount)
+                    repeat(5) { index -> pdf.openPage(index).use { page -> assertEquals(595, page.width); assertEquals(842, page.height) } }
                 }
             }
         } finally { file.delete() }
     }
-    @Test fun importedImagesArePortableAndAppearOnEveryLandscapePdfPage() = runBlocking {
+    @Test fun importedImagesArePortableAndAppearOnEveryPointagePdfPage() = runBlocking {
         fun image(color: Int): ByteArray {
             val bitmap = android.graphics.Bitmap.createBitmap(120, 40, android.graphics.Bitmap.Config.ARGB_8888)
             bitmap.eraseColor(color)
@@ -112,23 +112,31 @@ class DatabaseAndDocumentsTest {
             val backup = Backup(entries = emptyList(), rules = WorkRules(), preferences = Preferences(), profile = profile)
             val restored = EntryCodec.json.decodeFromString<Backup>(EntryCodec.json.encodeToString(Backup.serializer(), backup))
             BackupValidator.validate(restored); assertEquals(profile, restored.profile)
-            val entries = (0..35).map { index ->
+            val entries = (0..4).map { index ->
                 val date = LocalDate.of(2026, 10, 5).plusDays(index.toLong())
                 WorkCalculator.calculate(WorkEntry(start = "${date}T08:00", end = "${date}T12:00", location = "Site India", notes = "Notes à conserver ".repeat(8)), WorkRules())
             }
-            file.outputStream().use { PdfExporter.write(it, entries, ReportPeriod(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 11, 15)), restored.profile) }
+            writePointagePdf(file, entries, restored.profile)
             android.os.ParcelFileDescriptor.open(file, android.os.ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
                 android.graphics.pdf.PdfRenderer(descriptor).use { pdf ->
-                    assertTrue(pdf.pageCount > 1)
+                    assertEquals(5, pdf.pageCount)
                     repeat(pdf.pageCount) { index -> pdf.openPage(index).use { page ->
-                        assertEquals(842, page.width); assertEquals(595, page.height)
-                        val bitmap = android.graphics.Bitmap.createBitmap(842, 595, android.graphics.Bitmap.Config.ARGB_8888)
+                        assertEquals(595, page.width); assertEquals(842, page.height)
+                        val bitmap = android.graphics.Bitmap.createBitmap(595, 842, android.graphics.Bitmap.Config.ARGB_8888)
                         bitmap.eraseColor(android.graphics.Color.WHITE)
                         page.render(bitmap, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                        val logoPixel = bitmap.getPixel(60, 41)
-                        assertTrue(android.graphics.Color.green(logoPixel) >= 250 && android.graphics.Color.red(logoPixel) <= 3 && android.graphics.Color.blue(logoPixel) <= 3)
-                        val signaturePixel = bitmap.getPixel(726, 554)
-                        assertTrue(android.graphics.Color.blue(signaturePixel) >= 250 && android.graphics.Color.red(signaturePixel) <= 3 && android.graphics.Color.green(signaturePixel) <= 3)
+                        fun colored(top: Int, bottom: Int, green: Boolean): Int {
+                            var count = 0
+                            for (y in top until bottom) for (x in 50 until 350) {
+                                val pixel = bitmap.getPixel(x, y)
+                                if (android.graphics.Color.red(pixel) < 5 &&
+                                    (if (green) android.graphics.Color.green(pixel) > 245 && android.graphics.Color.blue(pixel) < 5
+                                    else android.graphics.Color.blue(pixel) > 245 && android.graphics.Color.green(pixel) < 5)) count++
+                            }
+                            return count
+                        }
+                        assertTrue("Logo présent sur la page $index", colored(90, 240, true) > 100)
+                        assertTrue("Signature présente sur la page $index", colored(680, 790, false) > 100)
                         bitmap.recycle()
                     } }
                 }
@@ -136,9 +144,9 @@ class DatabaseAndDocumentsTest {
         } finally { input.delete(); file.delete() }
     }
     @Test fun sharedDocumentPublishesExactRequestedFileName() = runBlocking {
-        val name = "Feuilles_heures_hebdomadaire_DUPONT JEAN_2026-10-05.csv"
+        val name = "Feuilles_heures_hebdomadaire_DUPONT JEAN_2026-10-05.xlsx"
         val service = DocumentService(context)
-        val document = service.prepare(name, "text/csv") { it.write("Date;Heures".toByteArray()) }
+        val document = service.prepare(name, XlsxExporter.MIME) { output -> context.assets.open(XlsxExporter.TEMPLATE).use { it.copyTo(output) } }
         val file = File(document.path)
         try {
             val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", file)
@@ -146,5 +154,10 @@ class DatabaseAndDocumentsTest {
                 assertTrue(it.moveToFirst()); assertEquals(name, it.getString(0))
             }
         } finally { file.delete(); file.parentFile?.delete() }
+    }
+    private fun writePointagePdf(file: File, entries: List<WorkEntry>, profile: Profile) {
+        val workbook = java.io.ByteArrayOutputStream()
+        context.assets.open(XlsxExporter.TEMPLATE).use { XlsxExporter.write(workbook, it, entries, PointageWeek(LocalDate.of(2026, 10, 5)), profile) }
+        file.outputStream().use { PointagePdfExporter.write(it, workbook.toByteArray()) }
     }
 }

@@ -1,42 +1,35 @@
-# Validation de WorkTrack 2.2.0
+# Validation de WorkTrack 2.2.1
 
 Vérification locale sous Windows avec JDK 21 et un émulateur Pixel 7 sous Android 16 (API 36).
 
 | Vérification | Résultat |
 |---|---|
-| Tests JUnit du moteur, des lieux, sauvegardes et exports | 45 réussis, 0 échec |
-| Tests Android : Compose, Room, repository, fichiers, PDF et Excel | 16 réussis, 0 échec |
+| Tests JUnit : moteur, lieux, sauvegardes, pointage XLSX | 43 réussis, 0 échec |
+| Tests Android : Compose, Room, images, XLSX/PDF et ouverture | 19 réussis, 0 échec |
 | Android Lint debug | 0 erreur ; avertissements de versions et suggestions Android/Kotlin |
-| Build debug | réussi |
 | Build release avec R8 et réduction des ressources | réussi |
 | Installation et lancement du release signé | réussis sur émulateur API 36 |
 
-Commande de validation complète sous Windows :
+## Temps et données
 
-```powershell
-.\build-android.bat -Release -Test -ConnectedTests -Install
-```
+Les tests utilisent des bases et préférences isolées, des identités fictives et une semaine anonymisée. Ses 35 activités donnent **1 845 minutes effectives (30,75 h), 510 minutes non effectives (8,50 h), 5 repas**. La franchise de 45 minutes s'applique dans les deux sens domicile ↔ site ; les durées de 120, 90 et 30 minutes donnent 75, 45 et 0 minutes non effectives.
 
-Les tests utilisent des bases et préférences isolées, des identités fictives et une semaine de référence anonymisée. Ses 35 activités donnent **1 845 minutes effectives (30,75 h), 510 minutes non effectives (8,50 h), 5 repas**. La franchise de 45 minutes s'applique dans les deux sens domicile ↔ site : les durées de 120, 90 et 30 minutes donnent respectivement 75, 45 et 0 minutes non effectives.
+Les neuf combinaisons de lieux, les franchises personnalisées, les passages de minuit, les repas, les arrondis et les chevauchements sont couverts. Le calcul des heures de nuit est comparé à une référence minute par minute sur 240 combinaisons. Les tests Room vérifient les migrations et la conservation des horaires, règles et journaux. Les sauvegardes avec images sont validées par aller-retour.
 
-Les neuf combinaisons de lieux, les franchises personnalisées, les passages de minuit, les repas, les arrondis et les chevauchements sont couverts. Le calcul des heures de nuit intersecte au maximum deux plages par journée, sans parcourir chaque minute ; il est comparé à une référence minute par minute sur 240 combinaisons de fenêtres, horaires, durées et types d'activité, avec franchise et arrondi.
+## Pointage hebdomadaire
 
-Les tests Compose vérifient les quatre destinations Navigation 3, la saisie d'un trajet, les champs conditionnels d'intervention, le préremplissage du départ et du site depuis un trajet précédent, le respect des corrections manuelles, l'absence de suggestions rapides sur les trajets, le refus des heures inversées et l'abandon confirmé d'une saisie.
+L'écran propose deux formats : XLSX et PDF. Les tests Compose vérifient cette sélection, la semaine de cinq jours et l'absence des anciennes options. Les tests de saisie, préremplissage, corrections manuelles, horaires invalides et navigation restent présents.
 
-Les tests Room vérifient la migration SQLite historique et la correction des anciens allers domicile → site : horaires et franchise enregistrée conservés, audit avant/après et absence de répétition au lancement suivant. Les sauvegardes sont vérifiées par aller-retour et validation des données.
+Le XLSX reprend les cinq onglets, fusions, images et parties non modifiées du modèle. Les dates et horaires sont numériques ; les numéros d'affaire sont des textes, y compris `00042`. Les contrôles couvrent les jours vides, passages de minuit, bornes de semaine, pauses séparées, débordements de capacité, logo et signature.
 
-Les tests de documents importent une image par URI, vérifient sa présence dans une sauvegarde, rendent chaque page d'un PDF long et contrôlent le logo et la signature. Ils vérifient aussi le nom exposé par FileProvider. Les exports PDF sont en A4 paysage, sans marque de l'application, avec une mention des franchises déjà déduites. Les CSV utilisent un BOM UTF-8, des décimales françaises et un séparateur point-virgule.
+Le PDF est produit depuis ce même classeur rempli. Les tests Android vérifient exactement **cinq pages A4 portrait (595 × 842 points)**, y compris pour une semaine avec quatre jours vides. Ils rendent les pages et contrôlent les pixels du logo et de la signature sur chaque page. Les cinq pages de référence ont été rendues et inspectées visuellement ; leur texte extrait concorde avec les dates et totaux du classeur et conserve les zéros initiaux des numéros d'affaire. Aucun tableau supplémentaire ou récapitulatif séparé n'est ajouté.
 
-Les avertissements Lint ne sont pas masqués par une baseline. Les versions de la stack restent fixées ; les essais sur émulateur ne remplacent pas une validation sur chaque modèle de téléphone.
+## Enregistrement et ouverture
 
-## Modèle Excel hebdomadaire
+La fenêtre de confirmation est testée avec **Ouvrir**, **Partager** et **Fermer**. Les tests de documents vérifient que l'enregistrement renvoie l'URI de destination réelle et que l'intention d'ouverture utilise cette URI, le bon type MIME, ClipData et un droit de lecture temporaire. Un lecteur absent produit un message compréhensible ; une activité externe n'est pas lancée dans ce test.
 
-L'export du modèle original est testé sur la JVM et sur Android. Les cinq onglets et les parties non modifiées du classeur sont conservés, notamment les images et leurs relations. Les cellules de date et d'heure sont numériques, les numéros d'affaire restent des textes avec zéros initiaux, et les données saisies ne deviennent pas des formules.
+La génération et l'enregistrement sont testés sur Android. Le contrôle par l'interface Excel Windows n'est pas revendiqué. Les essais sur émulateur ne remplacent pas une validation sur chaque modèle de téléphone ou lecteur bureautique.
 
-Les tests couvrent les totaux de la semaine, les franchises personnalisées enregistrées, les passages de minuit et les limites de semaine, les pauses séparées, les jours vides, les débordements de capacité, le logo et son rapport largeur/hauteur, ainsi que la signature sur chaque feuille. Le test Android produit réellement le classeur à partir de l'asset embarqué et contrôle ses 30,75 h effectives, 8,50 h non effectives et 5 repas.
-
-Les cinq feuilles remplies ont été rendues et contrôlées visuellement. Une lecture indépendante du fichier généré par Android vérifie les dates, les formules et leurs résultats enregistrés, ainsi que la conservation du numéro `00042`. Le contrôle par l'interface Excel Windows n'a pas pu être mené à terme : sa boîte de dialogue Ouvrir n'est pas ciblable correctement par l'outil d'automatisation. Aucun résultat de validation native dans Excel n'est revendiqué.
-
-Le build release optimisé a également été installé et testé de bout en bout sur l'émulateur : saisie d'une intervention fictive d'une heure, sélection de la semaine, génération du XLSX et enregistrement via le sélecteur de documents Android. Le fichier enregistré a été relu indépendamment : cinq onglets, activité présente le mercredi, une heure effective et les quatre autres jours à zéro. La signature de l'APK correspond à la clé historique et l'application n'est pas marquée DEBUGGABLE. Les données de démonstration restent limitées à l'émulateur et ne sont pas intégrées à l'APK.
+Les avertissements Lint ne sont pas masqués par une baseline. Les versions de la stack restent fixées. Les données d'exemple ne sont pas intégrées à l'APK et les clés de signature restent hors de Git.
 
 Rapports générés, exclus de Git : `app/build/reports/tests/testDebugUnitTest/`, `app/build/reports/androidTests/connected/debug/`, `app/build/reports/lint-results-debug.html`.

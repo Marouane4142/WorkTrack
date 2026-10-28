@@ -59,7 +59,7 @@ data class PointageDay(val date: LocalDate, val entries: List<WorkEntry>) {
                 cursor.also { cursor++ }
             }
             require(row <= (if (entry.type.isTravel) 51 else 50) && (row != 51 || entry == remaining.last())) {
-                "Le ${date.format(ShortDate)} dépasse les lignes disponibles du modèle Excel. Aucune activité n'a été supprimée. Utilisez aussi le CSV détaillé pour cette journée."
+                "Le ${date.format(ShortDate)} dépasse les lignes disponibles du modèle de pointage. Aucune activité n'a été supprimée. Adaptez les plages de cette journée avant de l'exporter."
             }
             result += PointageLine(row, entry, date)
         }

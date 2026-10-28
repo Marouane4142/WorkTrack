@@ -4,7 +4,7 @@
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-green.svg)](LICENSE)
 [![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3DDC84.svg)](https://github.com/Marouane4142/WorkTrack/releases/latest)
 
-Application Android de suivi du temps de travail, en français, écrite en Kotlin et Jetpack Compose. Les données restent sur le téléphone ; aucun compte ou accès Internet n'est nécessaire. WorkTrack distingue les heures effectives et non effectives, conserve les durées brutes et remplit le modèle de pointage Excel hebdomadaire fourni. Les exports PDF et CSV restent disponibles. Aucun calcul financier n'est inclus.
+Application Android de suivi du temps de travail, en français, écrite en Kotlin et Jetpack Compose. Les données restent sur le téléphone ; aucun compte ou accès Internet n'est nécessaire. WorkTrack distingue les heures effectives et non effectives, conserve les durées brutes et remplit le modèle de pointage hebdomadaire fourni, en Excel ou en PDF. Aucun calcul financier n'est inclus.
 
 **[Télécharger l'APK](https://github.com/Marouane4142/WorkTrack/releases/latest)** · [Contribuer](CONTRIBUTING.md) · [Validation](docs/VALIDATION.md)
 
@@ -15,11 +15,12 @@ Application Android de suivi du temps de travail, en français, écrite en Kotli
 - Trajet unique avec départ et destination typés : Domicile, Bureau ou Site client. Le dernier lieu connu préremplit le départ ; un trajet vers un client préremplit le site de l'intervention suivante. Les corrections manuelles sont conservées.
 - Historique avec calendrier, recherche, filtres, modification et duplication d'une activité ou d'une journée.
 - Export principal **Excel XLSX** : une semaine du lundi au vendredi, avec les cinq onglets du modèle original, dates, identité, horaires, affaires, pauses, heures effectives/non effectives, totaux jour/nuit, repas et signature. Le logo du modèle est conservé, ou remplacé par celui configuré dans le profil. [Détails du remplissage](docs/POINTAGE_EXCEL.md).
-- PDF A4 paysage, tableaux paginés, durées brutes et comptabilisées séparées, logo de l'entreprise et signature sur chaque page. CSV détaillé ou journalier, compatible avec les tableurs français.
+- Le **même pointage en PDF** : exactement cinq pages A4 portrait, une par jour, reprenant la grille du classeur rempli, ses valeurs, logo et signature. Les jours sans activité gardent leur page datée.
+- Après l'enregistrement : **Ouvrir**, Partager ou Fermer. Le bouton Ouvrir transmet le fichier réellement enregistré à une application compatible installée sur le téléphone.
 - Préférences de thème clair/sombre/système, affichage des durées, premier jour de semaine, franchise des trajets, seuil des repas, arrondi et plage de nuit.
 - Sauvegarde JSON comprenant les images, restauration par fusion ou remplacement, journal des modifications et recalcul explicite d'une période.
 
-Les exports portent le nom `Feuilles_heures_hebdomadaire_NOM PRENOM_YYYY-MM-DD.xlsx`, `.pdf` ou `.csv`, avec la date du premier jour de la semaine. Le modèle Excel commence toujours le lundi. Les relevés n'affichent aucune marque de l'application. Une installation neuve ne contient aucune activité d'exemple.
+Les deux formats portent le nom `Feuilles_heures_hebdomadaire_NOM PRENOM_YYYY-MM-DD.xlsx` ou `.pdf`, avec la date du lundi. Les relevés n'affichent aucune marque de l'application. Une installation neuve ne contient aucune activité d'exemple.
 
 ## Règles de temps
 
@@ -103,7 +104,7 @@ app/src/main/java/fr/worktrack/
   domain/       modèles, calculs, lieux et validation
   data/         Room, DataStore, repository et migrations
   di/           injection Hilt
-  export/       PDF, CSV, images et partage de fichiers
+  export/       pointage XLSX/PDF, images, ouverture et partage
   ui/           ViewModel, navigation et écrans Compose
   ui/theme/     thème Material 3 Expressive
 app/src/test/         tests JUnit et semaine anonymisée

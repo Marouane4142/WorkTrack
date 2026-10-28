@@ -183,18 +183,11 @@ class WorkTrackViewModel @Inject constructor(private val repository: WorkReposit
     }
     fun erase() = action { repository.erase(); eventChannel.send(UiEvent.Message("L'historique a été effacé.")) }
 
-    fun export(kind: String, period: ReportPeriod, share: Boolean = false) = action {
+    fun export(format: PointageFormat, week: PointageWeek, share: Boolean = false) = action {
         val source = state.value.entries
         val profile = state.value.settings.profile
-        val actualPeriod = if (kind == "XLSX") PointageWeek.containing(period.from).period else period
-        require(actualPeriod.entries(source).isNotEmpty()) { "Ajoutez une activité ou choisissez une période contenant des données." }
-        val name = ReportNames.base(profile, period.from, state.value.settings.preferences.weekStartsOnMonday)
-        val document = when (kind) {
-            "XLSX" -> documents.pointage(source, PointageWeek.containing(period.from), profile)
-            "PDF" -> documents.prepare("$name.pdf", "application/pdf") { PdfExporter.write(it, source, period, profile) }
-            "Recapitulatif" -> documents.prepare("$name.csv", "text/csv") { it.write(CsvExporter.summary(source, period)) }
-            else -> documents.prepare("$name.csv", "text/csv") { it.write(CsvExporter.detailed(source, period)) }
-        }
+        require(week.period.entries(source).isNotEmpty()) { "Ajoutez une activité ou choisissez une semaine contenant des données." }
+        val document = documents.pointage(source, week, profile, format)
         if (share) documents.share(document) else requestSave(document)
     }
     fun backup() = action {
@@ -210,8 +203,9 @@ class WorkTrackViewModel @Inject constructor(private val repository: WorkReposit
         if (uri == null) { handle["pending_path"] = null; return }
         val path = handle.get<String>("pending_path") ?: return
         val document = PendingDocument(path, handle["pending_name"] ?: "WorkTrack", handle["pending_mime"] ?: "application/octet-stream")
-        action { documents.save(document, uri); handle["pending_path"] = null; eventChannel.send(UiEvent.DocumentSaved(document)) }
+        action { val saved = documents.save(document, uri); handle["pending_path"] = null; eventChannel.send(UiEvent.DocumentSaved(saved)) }
     }
+    fun open(document: PendingDocument) = action { documents.open(document) }
     fun share(document: PendingDocument) = action { documents.share(document) }
     suspend fun readBackup(uri: Uri) = documents.readBackup(uri)
     fun restore(backup: Backup, replace: Boolean) = action {

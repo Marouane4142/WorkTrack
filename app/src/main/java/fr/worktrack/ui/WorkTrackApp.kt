@@ -146,10 +146,9 @@ fun WorkTrackApp(viewModel: WorkTrackViewModel, state: WorkTrackState) {
         text = { Text("Les modifications de cette activité ne seront pas enregistrées.") },
         confirmButton = { TextButton({ exitEditor = false; viewModel.discardDraft(); backStack.removeLastOrNull() }) { Text("Quitter") } },
         dismissButton = { TextButton({ exitEditor = false }) { Text("Continuer la saisie") } })
-    savedDocument?.let { document -> AlertDialog(onDismissRequest = { savedDocument = null }, icon = { Icon(Icons.Outlined.CheckCircle, null) },
-        title = { Text("Fichier enregistré") }, text = { Text(document.name) },
-        confirmButton = { TextButton({ savedDocument = null; viewModel.share(document) }) { Text("Partager") } },
-        dismissButton = { TextButton({ savedDocument = null }) { Text("Fermer") } }) }
+    savedDocument?.let { document -> SavedDocumentDialog(document,
+        onOpen = { savedDocument = null; viewModel.open(document) },
+        onShare = { savedDocument = null; viewModel.share(document) }, onClose = { savedDocument = null }) }
     importedBackup?.let { backup -> AlertDialog(onDismissRequest = { importedBackup = null; replaceBackup = false },
         title = { Text(if (replaceBackup) "Remplacer l'historique ?" else "Restaurer une sauvegarde") },
         text = { Text(if (replaceBackup) "Les ${state.entries.size} activités actuelles et les réglages seront remplacés par cette sauvegarde de ${backup.entries.size} activités."

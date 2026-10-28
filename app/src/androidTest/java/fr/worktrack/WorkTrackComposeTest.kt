@@ -68,16 +68,27 @@ class WorkTrackComposeTest {
         compose.onNodeWithText("Accueil").performClick()
         compose.onNodeWithText("Votre temps, au clair.").assertIsDisplayed()
     }
-    @Test fun exportsDefaultToTheFiveWeekdayExcelTemplateAndRetainPdfAndCsv() {
+    @Test fun exportsOfferOnlyTheSameFiveDayPointageInExcelOrPdf() {
         launch()
         compose.onNodeWithText("Exports").performClick()
-        compose.onNodeWithText("Lundi → vendredi · 5 onglets dans le même fichier Excel").assertExists()
+        compose.onNodeWithText("Lundi → vendredi · 5 jours dans le même relevé").assertExists()
         compose.onNodeWithText("Feuille de pointage Excel").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Ce mois").assertDoesNotExist()
-        compose.onNodeWithText("Relevé PDF").performScrollTo().performClick()
-        compose.onNodeWithText("Ce mois").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("CSV des activités").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("CSV journalier").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Feuille de pointage PDF").performScrollTo().performClick()
+        compose.onNodeWithText("Ce mois").assertDoesNotExist()
+        compose.onNodeWithText("Relevé PDF").assertDoesNotExist()
+        compose.onNodeWithText("CSV des activités").assertDoesNotExist()
+        compose.onNodeWithText("CSV journalier").assertDoesNotExist()
+    }
+    @Test fun savedFileDialogOffersOpenShareAndClose() {
+        var opened = false
+        compose.setContent { WorkTrackTheme { SavedDocumentDialog(fr.worktrack.export.PendingDocument("test", "Pointage.pdf", "application/pdf"),
+            onOpen = { opened = true }, onShare = {}, onClose = {}) } }
+        compose.onNodeWithText("Fichier enregistré").assertIsDisplayed()
+        compose.onNodeWithText("Partager").assertIsDisplayed()
+        compose.onNodeWithText("Fermer").assertIsDisplayed()
+        compose.onNodeWithText("Ouvrir").assertIsDisplayed().performClick()
+        compose.runOnIdle { org.junit.Assert.assertTrue(opened) }
     }
     @Test fun outboundTravelPreviewAndSavingDeductFortyFiveMinutes() {
         val vm = launch()
